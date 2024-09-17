@@ -1,7 +1,7 @@
 // src/lib/ericchase/Design Pattern/Observer/Store.ts
 class ConstantStore {
   value;
-  subscriptionSet = new Set;
+  subscriptionSet = new Set();
   constructor(value) {
     this.value = value;
   }
@@ -39,7 +39,7 @@ class Store {
   initialValue;
   notifyOnChangeOnly;
   currentValue;
-  subscriptionSet = new Set;
+  subscriptionSet = new Set();
   constructor(initialValue, notifyOnChangeOnly = false) {
     this.initialValue = initialValue;
     this.notifyOnChangeOnly = notifyOnChangeOnly;
@@ -62,8 +62,7 @@ class Store {
     });
   }
   set(value) {
-    if (this.notifyOnChangeOnly && this.currentValue === value)
-      return;
+    if (this.notifyOnChangeOnly && this.currentValue === value) return;
     this.currentValue = value;
     for (const callback of this.subscriptionSet) {
       callback(value, () => {
@@ -78,7 +77,7 @@ class Store {
 
 // src/lib/ericchase/Utility/Console.ts
 function ConsoleLog(...items) {
-  console["log"](...items);
+  console['log'](...items);
 }
 
 // src/lib/ericchase/Utility/JobQueue.ts
@@ -103,14 +102,13 @@ class JobQueue {
   get done() {
     return new Promise((resolve) => {
       this.runningCount.subscribe((count) => {
-        if (count === 0)
-          resolve();
+        if (count === 0) resolve();
       });
     });
   }
   async reset() {
-    if (this.running === true || await this.runningCount.get() > 0) {
-      throw "Warning: Wait for running jobs to finish before calling reset. `await JobQueue.done;`";
+    if (this.running === true || (await this.runningCount.get()) > 0) {
+      throw 'Warning: Wait for running jobs to finish before calling reset. `await JobQueue.done;`';
     }
     this.aborted = false;
     this.completionCount = 0;
@@ -123,8 +121,7 @@ class JobQueue {
     for (const result of this.results) {
       if (callback(result.value, result.error)?.abort === true) {
         this.subscriptionSet.delete(callback);
-        return () => {
-        };
+        return () => {};
       }
     }
     return () => {
@@ -138,7 +135,7 @@ class JobQueue {
   results = [];
   running = false;
   runningCount = new Store(0);
-  subscriptionSet = new Set;
+  subscriptionSet = new Set();
   run() {
     if (this.aborted === false && this.queueIndex < this.queue.length) {
       const { fn, tag } = this.queue[this.queueIndex++];
@@ -184,16 +181,16 @@ class JobQueue {
 function move() {
   GameLoop.add(async () => {
     switch (karel_facing) {
-      case "east":
+      case 'east':
         karel_x += 1;
         break;
-      case "north":
+      case 'north':
         karel_y -= 1;
         break;
-      case "south":
+      case 'south':
         karel_y += 1;
         break;
-      case "west":
+      case 'west':
         karel_x -= 1;
         break;
     }
@@ -213,8 +210,8 @@ function start(x, y) {
 }
 var karel_x = 0;
 var karel_y = 9;
-var karel_facing = "east";
-var positions = new Map;
+var karel_facing = 'east';
+var positions = new Map();
 var GameLoop = new JobQueue(500);
 
 // src/lib/ericchase/Web API/Node_Utility.ts
@@ -225,16 +222,15 @@ class CNodeRef {
   node;
   constructor(node) {
     if (node === null) {
-      throw new ReferenceError("Reference is null.");
+      throw new ReferenceError('Reference is null.');
     }
     if (node === undefined) {
-      throw new ReferenceError("Reference is undefined.");
+      throw new ReferenceError('Reference is undefined.');
     }
     this.node = node;
   }
   as(constructor_ref) {
-    if (this.node instanceof constructor_ref)
-      return this.node;
+    if (this.node instanceof constructor_ref) return this.node;
     throw new TypeError(`Reference node is not ${constructor_ref}`);
   }
   is(constructor_ref) {
@@ -276,14 +272,14 @@ class CNodeRef {
 // src/server/server.ts
 function EnableHotReload() {
   const socket = new WebSocket(server_ws);
-  socket.addEventListener("message", (event) => {
-    if (event.data === "reload") {
+  socket.addEventListener('message', (event) => {
+    if (event.data === 'reload') {
       window.location.reload();
     }
   });
 }
-var host = "127.0.0.1";
-var port = "8000";
+var host = '127.0.0.1';
+var port = '8000';
 var server_ws = `ws://${host}:${port}`;
 var server_http = `http://${host}:${port}`;
 
@@ -299,11 +295,11 @@ function createBall(x, y) {
   ball.style.top = `${4 + 5 + y * 69}px`;
 }
 EnableHotReload();
-var karel = NodeRef(document.querySelector("#karel"));
-var scene = NodeRef(document.querySelector("#scene")).as(HTMLElement);
-var domParser = new DOMParser;
+var karel = NodeRef(document.querySelector('#karel'));
+var scene = NodeRef(document.querySelector('#scene')).as(HTMLElement);
+var domParser = new DOMParser();
 var parseHTML = (html) => {
-  return domParser.parseFromString(html, "text/html");
+  return domParser.parseFromString(html, 'text/html');
 };
 GameLoop.subscribe(() => {
   drawKarel();

@@ -1,4 +1,4 @@
-import { addBall, GameLoop, move, karel_x, karel_y, start } from './lib/commands.js';
+import { addBall, GameLoop, karel_x, karel_y, move, start } from './lib/commands.js';
 import { NodeRef } from './lib/ericchase/Web API/Node_Utility.js';
 import { EnableHotReload } from './server/server.js';
 
