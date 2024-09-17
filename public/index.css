@@ -1,0 +1,60 @@
+:where(*) {
+  box-sizing: border-box;
+  font-family: unset;
+  font-size: 1em;
+  margin: 0;
+  padding: 0;
+}
+
+:where(html, body) {
+  height: 100vh;
+  line-height: 0;
+}
+/* :where(body > .entry-point) {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translate(-50%, -25%);
+  max-height: 100vh;
+  max-width: 100vw;
+} */
+:where(body > .entry-point > *:not(img)) {
+  line-height: 1;
+}
+
+body {
+  margin: 1em;
+}
+
+#karel {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.ball {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.mis-auto {
+  margin-inline-start: auto;
+}
+.gap-h {
+  width: 1em;
+  height: 100%;
+}
+.gap-v {
+  width: 100%;
+  height: 1em;
+}
+
+.collapse {
+  visibility: collapse !important;
+}
+.hide {
+  visibility: hidden !important;
+}
+.remove {
+  display: none !important;
+}
