@@ -1,46 +1,32 @@
-import { addBall, GameLoop, karel_x, karel_y, move, start } from './lib/commands.js';
-import { NodeRef } from './lib/ericchase/Web API/Node_Utility.js';
-import { EnableHotReload } from './server/server.js';
+import { ballsPresent, createFence, facingFence, frontIsBlocked, move, start, takeBall, turnLeft, turnRight } from './lib/commands.js';
 
-EnableHotReload();
+// setup scene
 
-const karel = NodeRef(document.querySelector('#karel'));
-const scene = NodeRef(document.querySelector('#scene')).as(HTMLElement);
+createFence(1, 9);
+createFence(4, 9);
+createFence(5, 9);
+createFence(8, 9);
+createFence(9, 9);
 
-function drawKarel() {
-  karel.style.left = `${4 + 4 + karel_x * 69}px`; // border + missing width/2
-  karel.style.top = `${4 + 4 + karel_y * 69}px`; // border + missing height/2
+// steps
+
+await start(0, 9);
+while (true) {
+  if (ballsPresent()) {
+    await takeBall();
+  }
+  if (facingFence()) {
+    await turnLeft();
+    await move();
+    await turnRight();
+    await move();
+    await turnRight();
+    await move();
+    await turnLeft();
+  } else if (frontIsBlocked()) {
+    break;
+  } else {
+    await move();
+  }
 }
-
-const domParser = new DOMParser();
-const parseHTML = (html: string) => {
-  return domParser.parseFromString(html, 'text/html');
-};
-
-function createBall(x: number, y: number) {
-  const ball = addBall(NodeRef(parseHTML(`<div class="ball"><img src="./assets/ball.png" alt="ball" /></div>`).body.children[0]), x, y);
-  karel.as(HTMLElement).before(ball.as(HTMLElement));
-  ball.style.left = `${4 + 5 + x * 69}px`; // border + missing width/2
-  ball.style.top = `${4 + 5 + y * 69}px`; // border + missing height/2
-}
-
-GameLoop.subscribe(() => {
-  drawKarel();
-});
-
-createBall(1, 9);
-createBall(4, 9);
-createBall(5, 9);
-createBall(8, 9);
-createBall(9, 9);
-
-start(0, 9);
-move();
-move();
-move();
-move();
-move();
-move();
-move();
-move();
-move();
+console.log('ended');

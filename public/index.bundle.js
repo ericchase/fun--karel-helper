@@ -1,218 +1,40 @@
-// src/lib/ericchase/Design Pattern/Observer/Store.ts
-class ConstantStore {
-  value;
+// src/lib/ericchase/Algorithm/Sleep.ts
+async function Sleep(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// src/lib/ericchase/Design Pattern/Observer/Broadcast.ts
+class Broadcast {
   subscriptionSet = new Set();
-  constructor(value) {
-    this.value = value;
-  }
   subscribe(callback) {
     this.subscriptionSet.add(callback);
-    if (this.value !== undefined) {
-      callback(this.value, () => {
-        this.subscriptionSet.delete(callback);
-      });
-    }
     return () => {
       this.subscriptionSet.delete(callback);
     };
   }
-  get() {
+  wait(untilValue) {
     return new Promise((resolve) => {
       this.subscribe((value, unsubscribe) => {
-        unsubscribe();
-        resolve(value);
+        if (value === untilValue) {
+          unsubscribe();
+          resolve();
+        }
       });
     });
   }
-  set(value) {
-    if (this.value === undefined) {
-      this.value = value;
-      for (const callback of this.subscriptionSet) {
-        callback(value, () => {
-          this.subscriptionSet.delete(callback);
-        });
-      }
-    }
-  }
-}
-class Store {
-  initialValue;
-  notifyOnChangeOnly;
-  currentValue;
-  subscriptionSet = new Set();
-  constructor(initialValue, notifyOnChangeOnly = false) {
-    this.initialValue = initialValue;
-    this.notifyOnChangeOnly = notifyOnChangeOnly;
-    this.currentValue = initialValue;
-  }
-  subscribe(callback) {
-    this.subscriptionSet.add(callback);
-    const unsubscribe = () => {
-      this.subscriptionSet.delete(callback);
-    };
-    callback(this.currentValue, unsubscribe);
-    return unsubscribe;
-  }
-  get() {
-    return new Promise((resolve) => {
-      this.subscribe((value, unsubscribe) => {
-        unsubscribe();
-        resolve(value);
-      });
-    });
-  }
-  set(value) {
-    if (this.notifyOnChangeOnly && this.currentValue === value) return;
-    this.currentValue = value;
+  send(value) {
     for (const callback of this.subscriptionSet) {
       callback(value, () => {
         this.subscriptionSet.delete(callback);
       });
     }
   }
-  update(callback) {
-    this.set(callback(this.currentValue));
+  sendAndWait(value, untilValue) {
+    const _ = this.wait(untilValue);
+    this.send(value);
+    return _;
   }
 }
-
-// src/lib/ericchase/Utility/Console.ts
-function ConsoleLog(...items) {
-  console['log'](...items);
-}
-
-// src/lib/ericchase/Utility/JobQueue.ts
-class JobQueue {
-  delay_ms;
-  constructor(delay_ms) {
-    this.delay_ms = delay_ms;
-  }
-  async abort() {
-    this.aborted = true;
-    await this.done;
-  }
-  add(fn, tag) {
-    if (this.aborted === false) {
-      this.queue.push({ fn, tag });
-      if (this.running === false) {
-        this.running = true;
-        this.run();
-      }
-    }
-  }
-  get done() {
-    return new Promise((resolve) => {
-      this.runningCount.subscribe((count) => {
-        if (count === 0) resolve();
-      });
-    });
-  }
-  async reset() {
-    if (this.running === true || (await this.runningCount.get()) > 0) {
-      throw 'Warning: Wait for running jobs to finish before calling reset. `await JobQueue.done;`';
-    }
-    this.aborted = false;
-    this.completionCount = 0;
-    this.queue.length = 0;
-    this.queueIndex = 0;
-    this.results.length = 0;
-  }
-  subscribe(callback) {
-    this.subscriptionSet.add(callback);
-    for (const result of this.results) {
-      if (callback(result.value, result.error)?.abort === true) {
-        this.subscriptionSet.delete(callback);
-        return () => {};
-      }
-    }
-    return () => {
-      this.subscriptionSet.delete(callback);
-    };
-  }
-  aborted = false;
-  completionCount = 0;
-  queue = [];
-  queueIndex = 0;
-  results = [];
-  running = false;
-  runningCount = new Store(0);
-  subscriptionSet = new Set();
-  run() {
-    if (this.aborted === false && this.queueIndex < this.queue.length) {
-      const { fn, tag } = this.queue[this.queueIndex++];
-      (async () => {
-        this.runningCount.update((count) => {
-          return count + 1;
-        });
-        try {
-          const value = await fn();
-          this.send({ value, tag });
-        } catch (error) {
-          ConsoleLog(error);
-          this.send({ error, tag });
-        }
-        this.runningCount.update((count) => {
-          return count - 1;
-        });
-        if (this.delay_ms < 0) {
-          this.run();
-        }
-      })();
-      if (this.delay_ms >= 0) {
-        setTimeout(() => this.run(), this.delay_ms);
-      }
-    } else {
-      this.running = false;
-    }
-  }
-  send(result) {
-    if (this.aborted === false) {
-      this.completionCount++;
-      this.results.push(result);
-      for (const callback of this.subscriptionSet) {
-        if (callback(result.value, result.error, result.tag)?.abort === true) {
-          this.subscriptionSet.delete(callback);
-        }
-      }
-    }
-  }
-}
-
-// src/lib/commands.ts
-function move() {
-  GameLoop.add(async () => {
-    switch (karel_facing) {
-      case 'east':
-        karel_x += 1;
-        break;
-      case 'north':
-        karel_y -= 1;
-        break;
-      case 'south':
-        karel_y += 1;
-        break;
-      case 'west':
-        karel_x -= 1;
-        break;
-    }
-  });
-}
-function addBall(ball, x, y) {
-  const atposition = positions.get({ x, y });
-  if (atposition) {
-    return atposition;
-  }
-  positions.set({ x, y }, ball);
-  return ball;
-}
-function start(x, y) {
-  karel_x = x;
-  karel_y = y;
-}
-var karel_x = 0;
-var karel_y = 9;
-var karel_facing = 'east';
-var positions = new Map();
-var GameLoop = new JobQueue(500);
 
 // src/lib/ericchase/Web API/Node_Utility.ts
 function NodeRef(node) {
@@ -269,56 +91,185 @@ class CNodeRef {
   }
 }
 
-// src/server/server.ts
-function EnableHotReload() {
-  const socket = new WebSocket(server_ws);
-  socket.addEventListener('message', (event) => {
-    if (event.data === 'reload') {
-      window.location.reload();
-    }
-  });
-}
-var host = '127.0.0.1';
-var port = '8000';
-var server_ws = `ws://${host}:${port}`;
-var server_http = `http://${host}:${port}`;
-
-// src/index.bundle.ts
+// src/lib/commands.ts
 function drawKarel() {
   karel.style.left = `${4 + 4 + karel_x * 69}px`;
   karel.style.top = `${4 + 4 + karel_y * 69}px`;
 }
-function createBall(x, y) {
-  const ball = addBall(NodeRef(parseHTML(`<div class="ball"><img src="./assets/ball.png" alt="ball" /></div>`).body.children[0]), x, y);
-  karel.as(HTMLElement).before(ball.as(HTMLElement));
-  ball.style.left = `${4 + 5 + x * 69}px`;
-  ball.style.top = `${4 + 5 + y * 69}px`;
+function createFence(x, y) {
+  const fence = addFence(NodeRef(parseHTML(`<div class="entity fence"><img src="./assets/fence.png" alt="fence" /></div>`).body.children[0]), x, y);
+  karel.as(HTMLElement).before(fence.as(HTMLElement));
+  fence.style.left = `${4 + 1 + x * 69}px`;
+  fence.style.top = `${4 + 0 + y * 69}px`;
 }
-EnableHotReload();
+function xy(x, y) {
+  return JSON.stringify({ x, y });
+}
+function frontIsBlocked() {
+  return !frontIsClear();
+}
+function frontIsClear() {
+  if (facingFence()) {
+    return false;
+  }
+  switch (karel_facing) {
+    case 'north':
+      if (karel_y === 0) return false;
+      break;
+    case 'south':
+      if (karel_y === 9) return false;
+      break;
+    case 'west':
+      if (karel_x === 0) return false;
+      break;
+    case 'east':
+      if (karel_x === 9) return false;
+      break;
+  }
+  return true;
+}
+async function turnLeft() {
+  await Sleep(delay / 2);
+  switch (karel_facing) {
+    case 'north':
+      karel_facing = 'west';
+      karel.style.transform = 'rotate(180deg)';
+      break;
+    case 'south':
+      karel_facing = 'east';
+      karel.style.transform = 'rotate(0deg)';
+      break;
+    case 'west':
+      karel_facing = 'south';
+      karel.style.transform = 'rotate(90deg)';
+      break;
+    case 'east':
+      karel_facing = 'north';
+      karel.style.transform = 'rotate(270deg)';
+      break;
+  }
+  await Sleep(delay / 2);
+}
+async function turnRight() {
+  await Sleep(delay / 2);
+  switch (karel_facing) {
+    case 'north':
+      karel_facing = 'east';
+      karel.style.transform = 'rotate(0deg)';
+      break;
+    case 'south':
+      karel_facing = 'west';
+      karel.style.transform = 'rotate(180deg)';
+      break;
+    case 'west':
+      karel_facing = 'north';
+      karel.style.transform = 'rotate(270deg)';
+      break;
+    case 'east':
+      karel_facing = 'south';
+      karel.style.transform = 'rotate(90deg)';
+      break;
+  }
+  await Sleep(delay / 2);
+}
+function ballsPresent() {
+  return ballPosition.get(xy(karel_x, karel_y));
+}
+async function takeBall() {
+  const ref = ballPosition.get(xy(karel_x, karel_y));
+  if (ref) {
+    ballPosition.delete(xy(karel_x, karel_y));
+    await Sleep(delay);
+    ref.as(Element).remove();
+  } else {
+    throw 'There is no ball!';
+  }
+}
+function addFence(fence, x, y) {
+  const ref = fencePosition.get(xy(x, y));
+  if (ref) return ref;
+  fencePosition.set(xy(x, y), fence);
+  return fence;
+}
+function facingFence() {
+  switch (karel_facing) {
+    case 'west':
+      if (fencePosition.get(xy(karel_x - 1, karel_y))) return true;
+      break;
+    case 'east':
+      if (fencePosition.get(xy(karel_x + 1, karel_y))) return true;
+      break;
+  }
+  return false;
+}
+async function start(x, y) {
+  karel_x = x;
+  karel_y = y;
+  onUpdate.send();
+}
+async function move() {
+  if (frontIsClear() === false) {
+    throw 'Karel ran into something!';
+  }
+  switch (karel_facing) {
+    case 'north':
+      karel_y -= 1;
+      break;
+    case 'south':
+      karel_y += 1;
+      break;
+    case 'west':
+      karel_x -= 1;
+      break;
+    case 'east':
+      karel_x += 1;
+      break;
+  }
+  await Sleep(delay);
+  onUpdate.send();
+}
 var karel = NodeRef(document.querySelector('#karel'));
-var scene = NodeRef(document.querySelector('#scene')).as(HTMLElement);
 var domParser = new DOMParser();
 var parseHTML = (html) => {
   return domParser.parseFromString(html, 'text/html');
 };
-GameLoop.subscribe(() => {
+var onUpdate = new Broadcast();
+onUpdate.subscribe(() => {
   drawKarel();
 });
-createBall(1, 9);
-createBall(4, 9);
-createBall(5, 9);
-createBall(8, 9);
-createBall(9, 9);
-start(0, 9);
-move();
-move();
-move();
-move();
-move();
-move();
-move();
-move();
-move();
+var karel_x = 0;
+var karel_y = 0;
+var karel_facing = 'east';
+var delay = 250;
+var ballPosition = new Map();
+var fencePosition = new Map();
 
-//# debugId=36CD03C5DB7962F764756E2164756E21
+// src/index.bundle.ts
+createFence(1, 9);
+createFence(4, 9);
+createFence(5, 9);
+createFence(8, 9);
+createFence(9, 9);
+await start(0, 9);
+while (true) {
+  if (ballsPresent()) {
+    await takeBall();
+  }
+  if (facingFence()) {
+    await turnLeft();
+    await move();
+    await turnRight();
+    await move();
+    await turnRight();
+    await move();
+    await turnLeft();
+  } else if (frontIsBlocked()) {
+    break;
+  } else {
+    await move();
+  }
+}
+console.log('ended');
+
+//# debugId=334F0D7D6B54FE4164756E2164756E21
 //# sourceMappingURL=index.bundle.js.map

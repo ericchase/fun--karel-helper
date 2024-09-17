@@ -26,27 +26,10 @@ body {
   margin: 1em;
 }
 
-#karel {
+.entity {
   position: absolute;
   top: 0;
   left: 0;
-}
-.ball {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.mis-auto {
-  margin-inline-start: auto;
-}
-.gap-h {
-  width: 1em;
-  height: 100%;
-}
-.gap-v {
-  width: 100%;
-  height: 1em;
 }
 
 .collapse {
