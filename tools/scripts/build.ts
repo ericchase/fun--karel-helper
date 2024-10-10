@@ -1,7 +1,8 @@
 import { Broadcast } from '../../src/lib/ericchase/Design Pattern/Observer/Broadcast.js';
 import { RunSync } from '../../src/lib/ericchase/Platform/Bun/Child Process.js';
+import { CopyFile } from '../../src/lib/ericchase/Platform/Bun/Fs.js';
 import { GlobScanner } from '../../src/lib/ericchase/Platform/Bun/Glob.js';
-import { CleanDirectory, RenameFile } from '../../src/lib/ericchase/Platform/Node/Fs.js';
+import { CleanDirectory, DeleteFile, RenameFile } from '../../src/lib/ericchase/Platform/Node/Fs.js';
 import { Path } from '../../src/lib/ericchase/Platform/Node/Path.js';
 import { ConsoleLogWithDate, ConsoleNewline } from '../../src/lib/ericchase/Utility/Console.js';
 import { command_map } from '../dev.js';
@@ -155,15 +156,17 @@ export async function buildStep_Move() {
   // tools. and the workarounds are not particularly great. since we have a
   // custom build tool, we can easily move the built index file to the root
   // directory and call it a day. the only change we would need to make is
-  // adding the buildDir into any links on the index page. for example,
+  // adding the `out_dir` into any links on the index page. for example,
   // `<script src="./index.js" type="module"></script>` would become
   // `<script src="./public/index.js" type="module"></script>`. hopefully i'll
   // be able to automate this process in the future. for now, we won't do this,
   // because the local server reads from the public/ folder
   //
-  // if (await CopyFile({ from: PathGroup.new({ basedir: outDir, path: 'index.html' }).path, to: PathGroup.new({ path: 'index.html' }).path })) {
-  //   DeleteFile(PathGroup.new({ basedir: outDir, path: 'index.html' }).path);
+  // if (await CopyFile({ from: out_dir.appendSegment('index.html'), to: new Path('index.html') })) {
+  //   DeleteFile(out_dir.appendSegment('index.html'));
   // }
+  //
+  // We can use a redirect for this instead.
 }
 
 // step: rename
