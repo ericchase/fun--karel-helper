@@ -1,45 +1,83 @@
-import { Sleep } from './ericchase/Algorithm/Sleep.js';
 import { Broadcast } from './ericchase/Design Pattern/Observer/Broadcast.js';
+import { Sleep } from './ericchase/Utility/Sleep.js';
 import { NodeRef, type CNodeRef } from './ericchase/Web API/Node_Utility.js';
+
+export let karel_x = 0;
+export let karel_y = 0;
+export let karel_facing: 'east' | 'north' | 'south' | 'west' = 'east';
 
 const karel = NodeRef(document.querySelector('#karel'));
 // const scene = NodeRef(document.querySelector('#scene')).as(HTMLElement);
 
-function drawKarel() {
-  karel.style.left = `${4 + 4 + karel_x * 69}px`; // border + missing width/2
-  karel.style.top = `${4 + 4 + karel_y * 69}px`; // border + missing height/2
-}
+let delay = 250;
+const ballPosition = new Map<string, CNodeRef>();
+const wallHPosition = new Map<string, CNodeRef>();
+const wallVPosition = new Map<string, CNodeRef>();
+
+let mapW = 0;
+let mapH = 0;
 
 const domParser = new DOMParser();
 const parseHTML = (html: string) => {
   return domParser.parseFromString(html, 'text/html');
 };
 
-export function createBall(x: number, y: number) {
+const onUpdate = new Broadcast<void>();
+onUpdate.subscribe(() => {
+  drawKarel();
+});
+drawKarel();
+
+function drawKarel() {
+  karel.style.left = `${4 + 4 + karel_x * 69}px`; // border + missing width/2
+  karel.style.top = `${4 + 4 + karel_y * 69}px`; // border + missing height/2
+}
+
+export function setStepsPerSecond(steps: number) {
+  delay = 1000 / steps;
+}
+
+export function drawMap(w: number, h: number) {
+  mapW = w;
+  mapH = h;
+
+  // walls
+  const border = NodeRef(parseHTML(`<div class="entity border"></div>`).body.children[0]);
+  border.style.width = `${w * 69}px`;
+  border.style.height = `${h * 69}px`;
+  border.style.left = `${4}px`; // border
+  border.style.top = `${4}px`; // border
+  karel.as(HTMLElement).before(border.as(HTMLElement));
+
+  // dots
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      const dot = NodeRef(parseHTML(`<div class="entity dot"><img src="./assets/dot.png" alt="dot" /></div>`).body.children[0]);
+      dot.style.left = `${4 + i * 69}px`;
+      dot.style.top = `${4 + j * 69}px`;
+      karel.as(HTMLElement).before(dot.as(HTMLElement));
+    }
+  }
+}
+
+export function drawBall(x: number, y: number) {
   const ball = addBall(NodeRef(parseHTML(`<div class="entity ball"><img src="./assets/ball.png" alt="ball" /></div>`).body.children[0]), x, y);
   karel.as(HTMLElement).before(ball.as(HTMLElement));
   ball.style.left = `${4 + 5 + x * 69}px`; // border + missing width/2
   ball.style.top = `${4 + 5 + y * 69}px`; // border + missing height/2
 }
-export function createFence(x: number, y: number) {
-  const fence = addFence(NodeRef(parseHTML(`<div class="entity fence"><img src="./assets/fence.png" alt="fence" /></div>`).body.children[0]), x, y);
-  karel.as(HTMLElement).before(fence.as(HTMLElement));
-  fence.style.left = `${4 + 1 + x * 69}px`; // border + missing width/2
-  fence.style.top = `${4 + 0 + y * 69}px`; // border + missing height/2
+export function drawWallH(x: number, y: number) {
+  const wallH = addWallH(NodeRef(parseHTML(`<div class="entity wallh"><img src="./assets/wallh.png" alt="wallh" /></div>`).body.children[0]), x, y);
+  karel.as(HTMLElement).before(wallH.as(HTMLElement));
+  wallH.style.left = `${4 + x * 69}px`; // border + missing width/2
+  wallH.style.top = `${4 + y * 69}px`; // border + missing height/2
 }
-
-const onUpdate = new Broadcast<void>();
-onUpdate.subscribe(() => {
-  drawKarel();
-});
-
-export let karel_x = 0;
-export let karel_y = 0;
-export let karel_facing: 'east' | 'north' | 'south' | 'west' = 'east';
-
-const delay = 250;
-const ballPosition = new Map<string, CNodeRef>();
-const fencePosition = new Map<string, CNodeRef>();
+export function drawWallV(x: number, y: number) {
+  const wallV = addWallV(NodeRef(parseHTML(`<div class="entity wallv"><img src="./assets/wallv.png" alt="wallv" /></div>`).body.children[0]), x, y);
+  karel.as(HTMLElement).before(wallV.as(HTMLElement));
+  wallV.style.left = `${4 + x * 69}px`; // border + missing width/2
+  wallV.style.top = `${4 + y * 69}px`; // border + missing height/2
+}
 
 function xy(x: number, y: number) {
   return JSON.stringify({ x, y });
@@ -57,7 +95,7 @@ export function frontIsBlocked() {
   return !frontIsClear();
 }
 export function frontIsClear() {
-  if (facingFence()) {
+  if (facingWallH() || facingWallV()) {
     return false;
   }
   switch (karel_facing) {
@@ -65,13 +103,13 @@ export function frontIsClear() {
       if (karel_y === 0) return false;
       break;
     case 'south':
-      if (karel_y === 9) return false;
+      if (karel_y === mapH - 1) return false;
       break;
     case 'west':
       if (karel_x === 0) return false;
       break;
     case 'east':
-      if (karel_x === 9) return false;
+      if (karel_x === mapW - 1) return false;
       break;
   }
   return true;
@@ -107,6 +145,7 @@ export async function turnLeft() {
   await Sleep(delay / 2);
 }
 export async function turnRight() {
+  console.log('turnRight');
   await Sleep(delay / 2);
   switch (karel_facing) {
     case 'north':
@@ -152,25 +191,36 @@ export async function takeBall() {
   }
 }
 
-export function addFence(fence: CNodeRef, x: number, y: number) {
-  const ref = fencePosition.get(xy(x, y));
+export function addWallH(wallH: CNodeRef, x: number, y: number) {
+  const ref = wallHPosition.get(xy(x, y));
   if (ref) return ref;
-  fencePosition.set(xy(x, y), fence);
-  return fence;
+  wallHPosition.set(xy(x, y), wallH);
+  return wallH;
 }
-export function facingFence() {
+export function addWallV(wallV: CNodeRef, x: number, y: number) {
+  const ref = wallVPosition.get(xy(x, y));
+  if (ref) return ref;
+  wallVPosition.set(xy(x, y), wallV);
+  return wallV;
+}
+export function facingWallH() {
   switch (karel_facing) {
-    // case 'north':
-    //   if (fencePosition.get(xy(karel_x, karel_y - 1))) return true;
-    //   break;
-    // case 'south':
-    //   if (fencePosition.get(xy(karel_x, karel_y + 1))) return true;
-    //   break;
+    case 'north':
+      if (wallHPosition.get(xy(karel_x, karel_y))) return true;
+      break;
+    case 'south':
+      if (wallHPosition.get(xy(karel_x, karel_y))) return true;
+      break;
+  }
+  return false;
+}
+export function facingWallV() {
+  switch (karel_facing) {
     case 'west':
-      if (fencePosition.get(xy(karel_x - 1, karel_y))) return true;
+      if (wallVPosition.get(xy(karel_x - 1, karel_y))) return true;
       break;
     case 'east':
-      if (fencePosition.get(xy(karel_x + 1, karel_y))) return true;
+      if (wallVPosition.get(xy(karel_x + 1, karel_y))) return true;
       break;
   }
   return false;

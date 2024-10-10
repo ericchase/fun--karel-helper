@@ -27,9 +27,16 @@ body {
 }
 
 .entity {
+  font-size: 0;
+  line-height: 0;
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.border {
+  outline: 3px solid black;
+  /* background: green; */
 }
 
 .collapse {
